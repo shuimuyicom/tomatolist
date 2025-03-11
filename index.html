@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极简番茄钟</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+    <!-- 使用Google Fonts加载日系风格字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>極簡番茄鐘</h1>
+            <div class="tomato-icon">
+                <!-- 内联SVG番茄图标 -->
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                    <path class="tomato-body" d="M50,30 C20,30 10,50 10,65 C10,85 30,95 50,95 C70,95 90,85 90,65 C90,50 80,30 50,30 Z" fill="#e74c3c"/>
+                    <path class="tomato-stem" d="M50,30 L50,15 C50,15 45,10 40,15 C35,20 45,25 50,30 Z" fill="#27ae60"/>
+                    <path class="tomato-leaf" d="M50,20 C50,20 60,15 65,5 C65,5 70,10 65,20 C60,30 50,20 50,20 Z" fill="#2ecc71"/>
+                </svg>
+            </div>
+        </header>
+        
+        <main>
+            <div class="timer-container">
+                <div class="timer-display">
+                    <span id="minutes">25</span>:<span id="seconds">00</span>
+                </div>
+                
+                <div class="timer-mode">
+                    <span id="mode-indicator">工作时间</span>
+                </div>
+                
+                <div class="timer-controls">
+                    <button id="start-btn" class="btn">开始</button>
+                    <button id="pause-btn" class="btn" disabled>暂停</button>
+                    <button id="reset-btn" class="btn">重置</button>
+                </div>
+            </div>
+            
+            <div class="settings-container">
+                <h2>设置</h2>
+                <div class="setting-item">
+                    <label for="work-time">工作时间 (分钟):</label>
+                    <input type="number" id="work-time" min="1" max="60" value="25">
+                </div>
+                <div class="setting-item">
+                    <label for="break-time">休息时间 (分钟):</label>
+                    <input type="number" id="break-time" min="1" max="30" value="5">
+                </div>
+                <div class="setting-item">
+                    <label for="sound-enabled">声音提示:</label>
+                    <input type="checkbox" id="sound-enabled" checked>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>© 2023 <a href="https://www.shuimuyi.com" target="_blank">水木易</a> | 极简番茄钟</p>
+        </footer>
+    </div>
+    
+    <!-- 音频元素 -->
+    <audio id="bell-sound" src="bell.mp3" preload="auto"></audio>
+    
+    <script src="script.js"></script>
+</body>
+</html> 

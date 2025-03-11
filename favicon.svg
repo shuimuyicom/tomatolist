@@ -1,0 +1,5 @@
+<svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path class="tomato-body" d="M50,30 C20,30 10,50 10,65 C10,85 30,95 50,95 C70,95 90,85 90,65 C90,50 80,30 50,30 Z" fill="#e74c3c"/>
+    <path class="tomato-stem" d="M50,30 L50,15 C50,15 45,10 40,15 C35,20 45,25 50,30 Z" fill="#27ae60"/>
+    <path class="tomato-leaf" d="M50,20 C50,20 60,15 65,5 C65,5 70,10 65,20 C60,30 50,20 50,20 Z" fill="#2ecc71"/>
+</svg> 
