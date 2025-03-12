@@ -42,6 +42,75 @@ function init() {
     
     // 添加页面可见性变化事件监听
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // 预加载音频并尝试解锁音频
+    preloadAndUnlockAudio();
+}
+
+// 预加载音频并尝试解锁音频播放
+function preloadAndUnlockAudio() {
+    // 确保音频元素已正确加载
+    if (!bellSound) {
+        bellSound = document.getElementById('bell-sound');
+        if (!bellSound) {
+            // 如果DOM中没有音频元素，则创建一个
+            bellSound = document.createElement('audio');
+            bellSound.id = 'bell-sound';
+            bellSound.src = 'bell.mp3';
+            bellSound.preload = 'auto';
+            document.body.appendChild(bellSound);
+        }
+    }
+    
+    // 添加多种音频格式作为备选
+    const audioSources = ['bell.mp3', 'bell.ogg', 'bell.wav'];
+    let sourceAdded = false;
+    
+    // 清除现有的source元素
+    while (bellSound.firstChild) {
+        bellSound.removeChild(bellSound.firstChild);
+    }
+    
+    // 添加多种格式的source元素
+    audioSources.forEach(src => {
+        try {
+            const source = document.createElement('source');
+            source.src = src;
+            source.type = `audio/${src.split('.').pop()}`;
+            bellSound.appendChild(source);
+            sourceAdded = true;
+        } catch (e) {
+            console.error(`添加音频源 ${src} 失败:`, e);
+        }
+    });
+    
+    // 如果没有添加任何source元素，则设置src属性
+    if (!sourceAdded) {
+        bellSound.src = 'bell.mp3';
+    }
+    
+    // 尝试预加载音频
+    bellSound.load();
+    
+    // 解锁音频 - 在用户首次交互时播放并立即暂停
+    document.addEventListener('touchstart', unlockAudio, { once: true });
+    document.addEventListener('click', unlockAudio, { once: true });
+}
+
+// 解锁音频播放
+function unlockAudio() {
+    if (bellSound) {
+        // 播放并立即暂停，解锁音频
+        bellSound.play()
+            .then(() => {
+                bellSound.pause();
+                bellSound.currentTime = 0;
+                console.log('音频已解锁');
+            })
+            .catch(error => {
+                console.warn('音频解锁失败，可能在计时结束时无法播放提示音:', error);
+            });
+    }
 }
 
 // 处理页面可见性变化
@@ -106,13 +175,18 @@ function timerComplete() {
     isRunning = false;
     pausedTime = 0;
     
-    // 播放提示音
+    // 播放提示音 - 使用更健壮的方式
     if (soundEnabled) {
-        bellSound.currentTime = 0;
-        bellSound.play().catch(error => {
-            console.error('播放声音失败:', error);
-        });
+        playNotificationSound();
     }
+    
+    // 尝试使用振动API (如果设备支持)
+    if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
+    }
+    
+    // 尝试发送通知 (如果用户已授权)
+    tryShowNotification();
     
     // 切换工作/休息模式
     isWorkTime = !isWorkTime;
@@ -122,6 +196,64 @@ function timerComplete() {
     updateTimerDisplay(remainingTime);
     updateStatus();
     startBtn.textContent = '开始';
+}
+
+// 播放提示音的健壮实现
+function playNotificationSound() {
+    if (!bellSound) return;
+    
+    // 重置音频
+    bellSound.currentTime = 0;
+    
+    // 尝试多种播放方式
+    const playPromise = bellSound.play();
+    
+    if (playPromise !== undefined) {
+        playPromise.then(() => {
+            console.log('提示音播放成功');
+        }).catch(error => {
+            console.error('提示音播放失败:', error);
+            
+            // 尝试创建新的Audio对象播放
+            try {
+                const tempAudio = new Audio('bell.mp3');
+                tempAudio.play().catch(e => console.error('备用提示音播放失败:', e));
+            } catch (e) {
+                console.error('创建备用音频对象失败:', e);
+            }
+        });
+    }
+}
+
+// 尝试显示通知
+function tryShowNotification() {
+    if (!("Notification" in window)) return;
+    
+    if (Notification.permission === "granted") {
+        showNotification();
+    } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                showNotification();
+            }
+        });
+    }
+}
+
+// 显示通知
+function showNotification() {
+    const title = isWorkTime ? "休息时间到了!" : "工作时间到了!";
+    const options = {
+        body: isWorkTime ? "该休息一下了，放松一下眼睛和身体吧!" : "休息结束，该开始专注工作了!",
+        icon: "favicon.svg"
+    };
+    
+    try {
+        const notification = new Notification(title, options);
+        setTimeout(() => notification.close(), 5000);
+    } catch (e) {
+        console.error('显示通知失败:', e);
+    }
 }
 
 /**
