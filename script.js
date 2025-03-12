@@ -1,3 +1,16 @@
+// 番茄钟状态变量
+let isRunning = false;
+let isWorkTime = true;
+let timer = null;
+let startTime = null;
+let pausedTime = 0;
+let remainingTime = 0;
+
+// 默认设置
+let workDuration = 25 * 60; // 25分钟，以秒为单位
+let breakDuration = 5 * 60;  // 5分钟，以秒为单位
+let soundEnabled = true;
+
 // DOM元素
 const minutesDisplay = document.getElementById('minutes');
 const secondsDisplay = document.getElementById('seconds');
@@ -10,74 +23,105 @@ const breakTimeInput = document.getElementById('break-time');
 const soundEnabledCheckbox = document.getElementById('sound-enabled');
 const bellSound = document.getElementById('bell-sound');
 
-// 番茄钟状态
-let timer = null;
-let isRunning = false;
-let isPaused = false;
-let isWorkMode = true;
-let totalSeconds = 25 * 60; // 默认25分钟
-let remainingSeconds = totalSeconds;
+// 初始化
+function init() {
+    workTimeInput.value = workDuration / 60;
+    breakTimeInput.value = breakDuration / 60;
+    soundEnabledCheckbox.checked = soundEnabled;
+    
+    updateTimerDisplay(workDuration);
+    updateStatus();
+    
+    // 添加事件监听器
+    startBtn.addEventListener('click', toggleTimer);
+    pauseBtn.addEventListener('click', pauseTimer);
+    resetBtn.addEventListener('click', resetTimer);
+    workTimeInput.addEventListener('change', updateWorkDuration);
+    breakTimeInput.addEventListener('change', updateBreakDuration);
+    soundEnabledCheckbox.addEventListener('change', toggleSound);
+    
+    // 添加页面可见性变化事件监听
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+}
 
-// 初始化显示
-updateTimerDisplay();
-
-// 事件监听器
-startBtn.addEventListener('click', startTimer);
-pauseBtn.addEventListener('click', pauseTimer);
-resetBtn.addEventListener('click', resetTimer);
-workTimeInput.addEventListener('change', updateWorkTime);
-breakTimeInput.addEventListener('change', updateBreakTime);
-
-/**
- * 开始计时器
- */
-function startTimer() {
-    if (isPaused) {
-        isPaused = false;
-    } else {
-        // 如果是新的计时，根据当前模式设置时间
-        if (!isRunning) {
-            if (isWorkMode) {
-                totalSeconds = parseInt(workTimeInput.value) * 60;
-            } else {
-                totalSeconds = parseInt(breakTimeInput.value) * 60;
-            }
-            remainingSeconds = totalSeconds;
-            updateTimerDisplay();
+// 处理页面可见性变化
+function handleVisibilityChange() {
+    if (document.visibilityState === 'visible' && isRunning) {
+        // 页面重新变为可见且计时器正在运行，更新计时器
+        const currentTime = new Date().getTime();
+        const elapsedTime = Math.floor((currentTime - startTime) / 1000);
+        remainingTime = (isWorkTime ? workDuration : breakDuration) - elapsedTime - pausedTime;
+        
+        // 如果时间已经用完，则触发计时结束
+        if (remainingTime <= 0) {
+            timerComplete();
+        } else {
+            // 否则更新显示
+            updateTimerDisplay(remainingTime);
         }
     }
-    
-    isRunning = true;
-    startBtn.disabled = true;
-    pauseBtn.disabled = false;
-    
-    // 启动计时器
-    timer = setInterval(() => {
-        remainingSeconds--;
+}
+
+// 开始/暂停计时器
+function toggleTimer() {
+    if (isRunning) {
+        // 暂停计时器
+        clearInterval(timer);
+        const currentTime = new Date().getTime();
+        pausedTime += Math.floor((currentTime - startTime) / 1000);
+        startBtn.textContent = '开始';
+        isRunning = false;
+    } else {
+        // 开始计时器
+        startTime = new Date().getTime();
+        isRunning = true;
+        startBtn.textContent = '暂停';
         
-        if (remainingSeconds <= 0) {
-            // 计时结束
-            clearInterval(timer);
-            playSound();
-            
-            // 切换模式
-            isWorkMode = !isWorkMode;
-            modeIndicator.textContent = isWorkMode ? '工作时间' : '休息时间';
-            
-            // 重置计时器
-            totalSeconds = isWorkMode 
-                ? parseInt(workTimeInput.value) * 60 
-                : parseInt(breakTimeInput.value) * 60;
-            remainingSeconds = totalSeconds;
-            
-            isRunning = false;
-            isPaused = false;
-            startBtn.disabled = false;
-            pauseBtn.disabled = true;
+        // 如果是重新开始，重置剩余时间
+        if (remainingTime <= 0) {
+            remainingTime = isWorkTime ? workDuration : breakDuration;
+            pausedTime = 0;
         }
         
-        updateTimerDisplay();
-    }, 1000);
+        timer = setInterval(updateTimer, 1000);
+    }
+}
+
+// 更新计时器
+function updateTimer() {
+    const currentTime = new Date().getTime();
+    const elapsedTime = Math.floor((currentTime - startTime) / 1000);
+    remainingTime = (isWorkTime ? workDuration : breakDuration) - elapsedTime - pausedTime;
+    
+    if (remainingTime <= 0) {
+        timerComplete();
+    } else {
+        updateTimerDisplay(remainingTime);
+    }
+}
+
+// 计时结束
+function timerComplete() {
+    clearInterval(timer);
+    isRunning = false;
+    pausedTime = 0;
+    
+    // 播放提示音
+    if (soundEnabled) {
+        bellSound.currentTime = 0;
+        bellSound.play().catch(error => {
+            console.error('播放声音失败:', error);
+        });
+    }
+    
+    // 切换工作/休息模式
+    isWorkTime = !isWorkTime;
+    remainingTime = isWorkTime ? workDuration : breakDuration;
+    
+    // 更新UI
+    updateTimerDisplay(remainingTime);
+    updateStatus();
+    startBtn.textContent = '开始';
 }
 
 /**
@@ -89,7 +133,7 @@ function pauseTimer() {
         timer = null;
     }
     
-    isPaused = true;
+    isRunning = false;
     startBtn.disabled = false;
     pauseBtn.disabled = true;
 }
@@ -106,61 +150,76 @@ function resetTimer() {
     
     // 重置状态
     isRunning = false;
-    isPaused = false;
-    isWorkMode = true;
+    isWorkTime = true;
     modeIndicator.textContent = '工作时间';
     
     // 重置时间
-    totalSeconds = parseInt(workTimeInput.value) * 60;
-    remainingSeconds = totalSeconds;
+    remainingTime = workDuration;
     
     // 更新UI
-    updateTimerDisplay();
+    updateTimerDisplay(remainingTime);
+    updateStatus();
     startBtn.disabled = false;
     pauseBtn.disabled = true;
 }
 
 /**
+ * 更新计时器显示
+ */
+function updateTimerDisplay(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    minutesDisplay.textContent = minutes.toString().padStart(2, '0');
+    secondsDisplay.textContent = remainingSeconds.toString().padStart(2, '0');
+}
+
+/**
+ * 更新状态文本
+ */
+function updateStatus() {
+    modeIndicator.textContent = isWorkTime ? '工作时间' : '休息时间';
+    document.body.className = isWorkTime ? 'work-mode' : 'break-mode';
+}
+
+/**
  * 更新工作时间
  */
-function updateWorkTime() {
-    if (!isRunning && isWorkMode) {
-        totalSeconds = parseInt(workTimeInput.value) * 60;
-        remainingSeconds = totalSeconds;
-        updateTimerDisplay();
+function updateWorkDuration() {
+    const newDuration = parseInt(workTimeInput.value);
+    if (newDuration > 0) {
+        workDuration = newDuration * 60;
+        if (isWorkTime && !isRunning) {
+            remainingTime = workDuration;
+            updateTimerDisplay(remainingTime);
+        }
+    } else {
+        workTimeInput.value = workDuration / 60;
     }
 }
 
 /**
  * 更新休息时间
  */
-function updateBreakTime() {
-    if (!isRunning && !isWorkMode) {
-        totalSeconds = parseInt(breakTimeInput.value) * 60;
-        remainingSeconds = totalSeconds;
-        updateTimerDisplay();
+function updateBreakDuration() {
+    const newDuration = parseInt(breakTimeInput.value);
+    if (newDuration > 0) {
+        breakDuration = newDuration * 60;
+        if (!isWorkTime && !isRunning) {
+            remainingTime = breakDuration;
+            updateTimerDisplay(remainingTime);
+        }
+    } else {
+        breakTimeInput.value = breakDuration / 60;
     }
 }
 
 /**
- * 更新计时器显示
+ * 切换声音
  */
-function updateTimerDisplay() {
-    const minutes = Math.floor(remainingSeconds / 60);
-    const seconds = remainingSeconds % 60;
-    
-    minutesDisplay.textContent = minutes.toString().padStart(2, '0');
-    secondsDisplay.textContent = seconds.toString().padStart(2, '0');
+function toggleSound() {
+    soundEnabled = soundEnabledCheckbox.checked;
 }
 
-/**
- * 播放提示音
- */
-function playSound() {
-    if (soundEnabledCheckbox.checked) {
-        bellSound.currentTime = 0;
-        bellSound.play().catch(error => {
-            console.error('播放声音失败:', error);
-        });
-    }
-} 
+// 初始化应用
+window.addEventListener('load', init); 
