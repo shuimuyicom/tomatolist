@@ -16,7 +16,6 @@ const minutesDisplay = document.getElementById('minutes');
 const secondsDisplay = document.getElementById('seconds');
 const modeIndicator = document.getElementById('mode-indicator');
 const startBtn = document.getElementById('start-btn');
-const pauseBtn = document.getElementById('pause-btn');
 const resetBtn = document.getElementById('reset-btn');
 const workTimeInput = document.getElementById('work-time');
 const breakTimeInput = document.getElementById('break-time');
@@ -34,7 +33,6 @@ function init() {
     
     // 添加事件监听器
     startBtn.addEventListener('click', toggleTimer);
-    pauseBtn.addEventListener('click', pauseTimer);
     resetBtn.addEventListener('click', resetTimer);
     workTimeInput.addEventListener('change', updateWorkDuration);
     breakTimeInput.addEventListener('change', updateBreakDuration);
@@ -257,20 +255,6 @@ function showNotification() {
 }
 
 /**
- * 暂停计时器
- */
-function pauseTimer() {
-    if (timer) {
-        clearInterval(timer);
-        timer = null;
-    }
-    
-    isRunning = false;
-    startBtn.disabled = false;
-    pauseBtn.disabled = true;
-}
-
-/**
  * 重置计时器
  */
 function resetTimer() {
@@ -292,7 +276,6 @@ function resetTimer() {
     updateTimerDisplay(remainingTime);
     updateStatus();
     startBtn.disabled = false;
-    pauseBtn.disabled = true;
 }
 
 /**
